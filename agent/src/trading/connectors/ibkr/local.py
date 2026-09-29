@@ -485,8 +485,17 @@ def get_historical_bars(
     bar_size: str = "1 day",
     what_to_show: str = "TRADES",
     use_rth: bool = True,
+    end_date_time: str = "",
 ) -> dict[str, Any]:
-    """Fetch historical bars from local TWS / IB Gateway."""
+    """Fetch historical bars from local TWS / IB Gateway.
+
+    Args:
+        end_date_time: Optional window end for the request, ``"YYYYMMDD
+            HH:MM:SS [TZ]"`` (IBKR format). The empty default keeps the
+            connector's original behaviour — end at the current moment. A
+            historical window not ending today must pass its own end here,
+            because ``duration`` counts *backward* from ``end_date_time``.
+    """
     cfg = config or load_config()
     ib = _pool.acquire(cfg)
     try:
@@ -497,7 +506,7 @@ def get_historical_bars(
         tier_unapplied = _apply_market_data_type(ib, cfg)
         bars = ib.reqHistoricalData(
             contract,
-            endDateTime="",
+            endDateTime=end_date_time,
             durationStr=duration,
             barSizeSetting=bar_size,
             whatToShow=what_to_show,

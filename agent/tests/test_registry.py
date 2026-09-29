@@ -251,6 +251,8 @@ class TestFallbackChains:
         ]
         assert FALLBACK_CHAINS["us_equity"] == [
             "yahoo",
+            # Local TWS / IB Gateway (own subscriptions) — see registry comment.
+            "ibkr",
             "stooq",
             "sina",
             "eastmoney",

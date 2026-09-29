@@ -461,7 +461,9 @@ def test_fetch_auto_us_still_walks_us_chain() -> None:
         source="auto",
         loader_resolver=resolver,
     )
-    assert attempts[:2] == ["yahoo", "stooq"]
+    # Preferred source first, then the market chain in order (ibkr is the
+    # local TWS / IB Gateway slot right behind yahoo).
+    assert attempts[:3] == ["yahoo", "ibkr", "stooq"]
     assert "_unresolved" not in out
     assert "AAPL.US" in out
 

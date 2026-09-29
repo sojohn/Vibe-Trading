@@ -60,6 +60,7 @@ VALID_SOURCES: set[str] = {
     "pykrx",
     "longbridge",
     "mt5",
+    "ibkr",
     "tickerall",
     "local",
     "auto",
@@ -122,6 +123,7 @@ def _ensure_registered() -> None:
             "backtest.loaders.pykrx_loader",
             "backtest.loaders.longbridge",
             "backtest.loaders.mt5_loader",
+            "backtest.loaders.ibkr_loader",
             "backtest.loaders.tickerall_loader",
             "backtest.loaders.local_loader",
         ]
@@ -190,6 +192,12 @@ FALLBACK_CHAINS: dict[str, list[str]] = {
     ],
     "us_equity": [
         "yahoo",
+        # Local TWS / IB Gateway (the account's own subscriptions, read-only
+        # connector config). Zero ban risk, but IBKR paces historical requests
+        # per gateway (~60 / 10 min, shared with the trading connector), so it
+        # stays behind the zero-setup public endpoint; users who want their
+        # paid feed first set MARKET_DATA_ORDER_US_EQUITY.
+        "ibkr",
         "stooq",
         "sina",
         "eastmoney",
@@ -280,6 +288,7 @@ PRICE_CALIBER_BY_SOURCE: dict[str, str] = {
     "sina": "raw",
     "alphavantage": "raw",  # TIME_SERIES_DAILY, not the _ADJUSTED endpoint
     "longbridge": "raw",  # pins AdjustType.NoAdjust
+    "ibkr": "raw",  # reqHistoricalData whatToShow=TRADES, no adjustment applied
 }
 
 #: Per-(source, market) exceptions to the per-source table.

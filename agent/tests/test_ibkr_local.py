@@ -138,6 +138,31 @@ def test_quote_and_history_are_readonly(fake_ib_async) -> None:
     assert history["bars"][0]["close"] == 1.5
 
 
+def test_history_end_date_time_flows_through(fake_ib_async) -> None:
+    seen: dict[str, str] = {}
+
+    class _RecordingIB(_FakeIB):
+        def reqHistoricalData(self, contract, *, endDateTime, durationStr,
+                              barSizeSetting, whatToShow, useRTH, formatDate):
+            seen["endDateTime"] = endDateTime
+            return super().reqHistoricalData(
+                contract, endDateTime=endDateTime, durationStr=durationStr,
+                barSizeSetting=barSizeSetting, whatToShow=whatToShow,
+                useRTH=useRTH, formatDate=formatDate,
+            )
+
+    fake_ib_async.IB = _RecordingIB
+
+    # Default keeps the connector's original "end now" behaviour...
+    local.get_historical_bars("AAPL", config=local.IBKRLocalConfig())
+    assert seen["endDateTime"] == ""
+    # ...while an explicit window end reaches the wire verbatim.
+    local.get_historical_bars(
+        "AAPL", config=local.IBKRLocalConfig(), end_date_time="20260520 23:59:59 UTC"
+    )
+    assert seen["endDateTime"] == "20260520 23:59:59 UTC"
+
+
 def test_paper_profile_rejects_live_account(monkeypatch: pytest.MonkeyPatch, fake_ib_async) -> None:
     class _LiveIB(_FakeIB):
         def managedAccounts(self):
