@@ -242,14 +242,26 @@ def fetch_market_data(
         send HK symbols down the US chain, exhausting the attempt budget on
         US-only sources.
 
-        Falls back to ``[src]`` so an explicit source outside any chain still
-        gets at least one attempt.
+        When ``src`` is NOT a member of the symbol's own market chain, the
+        symbol's market still wins: a bare US ticker detects as ``us_equity``
+        but defaults to source ``tushare`` (not in the us_equity chain), and
+        a foreign chain lookup would send it down the a_share chain, whose
+        loaders cannot resolve it — every attempt fails and the symbol lands
+        in ``_unresolved`` even though the market chain could serve it. So
+        the requested source keeps first attempt, then the symbol's own
+        market chain follows.
+
+        Only when the market itself has no chain does the source-name lookup
+        apply. Falls back to ``[src]`` so an explicit source outside any
+        chain still gets at least one attempt.
         """
         if fallback_chain_provider is not None:
             return fallback_chain_provider(src)
         market_chain = FALLBACK_CHAINS.get(market, [])
         if src in market_chain:
             return market_chain
+        if market_chain:
+            return [src, *market_chain]
         for chain in FALLBACK_CHAINS.values():
             if src in chain:
                 return chain

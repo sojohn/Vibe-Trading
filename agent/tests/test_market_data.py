@@ -468,6 +468,38 @@ def test_fetch_auto_us_still_walks_us_chain() -> None:
     assert "AAPL.US" in out
 
 
+def test_fetch_auto_bare_us_ticker_walks_own_market_chain() -> None:
+    """A bare US ticker (no .US suffix) defaults to source tushare but still
+    detects as us_equity — the walk must reach the us_equity chain, not the
+    a_share chain whose loaders cannot resolve it (SCHD WebUI incident:
+    source="auto" returned unavailable, and only an explicit source="ibkr"
+    retry recovered)."""
+    from backtest.loaders.base import NoAvailableSourceError
+
+    attempts: list[str] = []
+
+    def resolver(src: str):
+        attempts.append(src)
+        if src == "stooq":
+            return _StubLoader
+        raise NoAvailableSourceError(f"{src} unavailable in test")
+
+    out = fetch_market_data(
+        codes=["SCHD"],
+        start_date="2026-01-01",
+        end_date="2026-01-02",
+        source="auto",
+        loader_resolver=resolver,
+    )
+    # tushare (detected default) first, then the us_equity chain — never
+    # tencent/mootdx/baostock from the a_share chain.
+    assert attempts[0] == "tushare"
+    assert attempts[1] == "yahoo"
+    assert "tencent" not in attempts and "mootdx" not in attempts
+    assert "_unresolved" not in out
+    assert "SCHD" in out
+
+
 def test_fetch_loader_error_falls_through_to_unresolved() -> None:
     out = fetch_market_data(
         codes=["X.US"],
